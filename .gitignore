@@ -1,0 +1,9 @@
+**/.env
+**/data/
+**/node_modules/
+**/.dart_tool/
+**/build/
+**/.flutter-plugins*
+**/.idea/
+**/*.iml
+.DS_Store

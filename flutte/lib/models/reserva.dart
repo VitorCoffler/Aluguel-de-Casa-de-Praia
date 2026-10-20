@@ -1,87 +1,62 @@
 import 'package:intl/intl.dart';
 
-// Centraliza a apresentação de preços e datas.
-String moeda(int centavos) {
-  return NumberFormat.currency(
-    locale: 'pt_BR',
-    symbol: 'R\$',
-  ).format(centavos / 100);
-}
-
-String formatarData(DateTime data) {
-  return DateFormat('dd/MM/yyyy').format(data);
-}
-
-// UTC é usado apenas para representar dias do calendário,
-// evitando diferenças de duração causadas pelo horário de verão.
-DateTime somenteData(DateTime data) {
-  return DateTime.utc(data.year, data.month, data.day);
-}
-
+String moeda(int centavos) => NumberFormat.currency(
+  locale: 'pt_BR', symbol: 'R\$',
+).format(centavos / 100);
+String formatarData(DateTime date) => DateFormat('dd/MM/yyyy').format(date);
+DateTime somenteData(DateTime date) => DateTime.utc(date.year, date.month, date.day);
 DateTime get hoje => somenteData(DateTime.now());
+DateTime get limiteReservas => hoje.add(const Duration(days: 730));
+String dataApi(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
+DateTime lerData(String date) => DateTime.parse('${date}T00:00:00Z');
 
-DateTime get limiteReservas {
-  final data = hoje;
-  return DateTime.utc(data.year + 1, data.month, data.day);
+class Usuario {
+  final int id;
+  final String nome;
+  final String email;
+  Usuario.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as int,
+      nome = json['name'] as String,
+      email = json['email'] as String;
 }
 
 class Casa {
   final int id;
+  final int donoId;
   final String nome;
   final String cidade;
   final String descricao;
   final int diariaCentavos;
+  final int hospedes;
+  final int quartos;
+  final bool ativa;
+  final List<String> fotos;
+  final List<String> comodidades;
 
-  const Casa({
-    required this.id,
-    required this.nome,
-    required this.cidade,
-    required this.descricao,
-    required this.diariaCentavos,
-  });
+  Casa.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as int,
+      donoId = json['owner_id'] as int,
+      nome = json['name'] as String,
+      cidade = json['city'] as String,
+      descricao = json['description'] as String,
+      diariaCentavos = json['price_cents'] as int,
+      hospedes = json['guests'] as int,
+      quartos = json['bedrooms'] as int,
+      ativa = json['active'] == 1,
+      fotos = List<String>.from(json['photos'] as List),
+      comodidades = List<String>.from(json['amenities'] as List);
 }
 
-class Reserva {
-  final Casa casa;
+class Periodo {
   final DateTime entrada;
-  int quantidadeNoites;
+  final DateTime saida;
+  Periodo(this.entrada, this.saida);
+  Periodo.fromJson(Map<String, dynamic> json)
+    : entrada = lerData(json['start_date'] as String),
+      saida = lerData(json['end_date'] as String);
 
-  Reserva({
-    required this.casa,
-    required this.entrada,
-    required this.quantidadeNoites,
-  });
-
-  DateTime get saida {
-    return entrada.add(Duration(days: quantidadeNoites));
-  }
-
-  int get subtotalCentavos {
-    return casa.diariaCentavos * quantidadeNoites;
-  }
+  // O checkout não ocupa uma noite: [entrada, saída).
+  bool contem(DateTime dia) => !dia.isBefore(entrada) && dia.isBefore(saida);
+  bool sobrepoe(DateTime inicio, DateTime fim) =>
+    entrada.isBefore(fim) && saida.isAfter(inicio);
 }
-
-// Dados fictícios mantidos em memória.
-const List<Casa> casas = [
-  Casa(
-    id: 1,
-    nome: 'Casa Brisa do Mar',
-    cidade: 'Guarapari - ES',
-    descricao: 'Casa com dois quartos, varanda e espaço para quatro pessoas.',
-    diariaCentavos: 25000,
-  ),
-  Casa(
-    id: 2,
-    nome: 'Recanto da Praia',
-    cidade: 'Piúma - ES',
-    descricao: 'Casa com três quartos, churrasqueira e garagem.',
-    diariaCentavos: 35000,
-  ),
-  Casa(
-    id: 3,
-    nome: 'Cantinho das Ondas',
-    cidade: 'Anchieta - ES',
-    descricao: 'Casa para duas pessoas, com cozinha e quintal.',
-    diariaCentavos: 18000,
-  ),
-];
