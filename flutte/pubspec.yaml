@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_test:
+    sdk: flutter
   intl: ^0.20.2
   table_calendar: ^3.3.0
 
